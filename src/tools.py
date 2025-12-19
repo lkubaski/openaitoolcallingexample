@@ -3,6 +3,11 @@ from models import GetCustomersTool, Customer, Order, GetCustomerOrdersTool
 
 import random
 
+TOOL_HANDLERS = {
+    "GetCustomersTool": lambda args: [c.model_dump() for c in get_customers(GetCustomersTool(**args))],
+    "GetCustomerOrdersTool": lambda args: [o.model_dump() for o in get_customer_orders(GetCustomerOrdersTool(**args))]
+}
+
 def get_customers(input: GetCustomersTool) -> list[Customer]:
     #print(f">> get_customers: input={input}")
     if SIMULATE_ERROR and input.name and not input.name.isupper():
