@@ -10,7 +10,7 @@ from openai.types.chat import ChatCompletionUserMessageParam, ChatCompletionMess
 import config
 from config import API_KEY, MODEL, SYSTEM_PROMPT
 from models import GetCustomersTool, GetCustomerOrdersTool
-from tools import get_customers, get_customer_orders
+from tools import TOOL_HANDLERS
 
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
@@ -69,6 +69,21 @@ def answer(questions: list[str]) -> None:
                 for tool_call in message.tool_calls:
                     tool_call = cast(ChatCompletionMessageFunctionToolCall, tool_call)
                     tool_output_json = None
+
+                    try:
+                        tool_arguments = json.loads(tool_call.function.arguments)
+                        handler = TOOL_HANDLERS.get(tool_call.function.name)
+                        if handler:
+                            tool_output = handler(tool_arguments)
+                            tool_output_json = json.dumps(tool_output)
+                        else:
+                            tool_output_json = json.dumps({"error": f"Unknown tool: {tool_call.function.name}"})
+                    except Exception as e:
+                        error_message = f"Error when calling tool {tool_call.function.name}: {str(e)}"
+                        print(f"ERROR: {error_message}")
+                        tool_output_json = json.dumps({"error": error_message})
+
+                    """
                     try:
                         tool_arguments = json.loads(tool_call.function.arguments)
                         tool_output = None
@@ -89,6 +104,7 @@ def answer(questions: list[str]) -> None:
                         error_message = f"Error when calling tool {tool_call.function.name}: {str(e)}"
                         print(f"ERROR: {error_message}")
                         tool_output_json = json.dumps({"error": error_message})
+                    """
 
                     print(f"Got tool_output_json={tool_output_json}")
                     tool_message = ChatCompletionToolMessageParam(
